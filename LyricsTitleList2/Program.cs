@@ -8,12 +8,15 @@ namespace LyricsTitleList2
     internal class Program
     {
         private const string LYRICS_ROOT2 = @"C:\Projects\Lyrics\Lyrics-LaTeX2.github";
+        private const string LYRICS_ROOT1 = @"D:\Data\歌\歌声喫茶\歌詞集\20200120_うぐいす\Lyrics-LaTeX2.github";
+
 
         [STAThread] // 印刷処理を行う場合は STAThread 属性が必要です
         static void Main(string[] args)
         {
+            string lyricsRoot = Directory.Exists(LYRICS_ROOT1) ? LYRICS_ROOT1 : LYRICS_ROOT2;
             // 歌詞曲名を印刷
-            DataTable dt = collectLyricsTitles(LYRICS_ROOT2);
+            DataTable dt = collectLyricsTitles(lyricsRoot);
             PrintDialog printDialog = new PrintDialog();
             if (printDialog.ShowDialog() == true)
             {
