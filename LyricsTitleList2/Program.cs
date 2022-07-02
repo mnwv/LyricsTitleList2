@@ -18,6 +18,11 @@ namespace LyricsTitleList2
             // 歌詞曲名を印刷
             DataTable dt = collectLyricsTitles(lyricsRoot);
             PrintDialog printDialog = new PrintDialog();
+
+            // 用紙を、A4, Landscapeにセット
+            printDialog.PrintTicket.PageOrientation = System.Printing.PageOrientation.Landscape;
+            printDialog.PrintTicket.PageMediaSize = new System.Printing.PageMediaSize(System.Printing.PageMediaSizeName.ISOA4);
+
             if (printDialog.ShowDialog() == true)
             {
                 if (printDialog.PrintableAreaWidth < printDialog.PrintableAreaHeight)
@@ -26,8 +31,20 @@ namespace LyricsTitleList2
                 }
                 else
                 {
-                    LyricsTitlesPagenator pagenator = new LyricsTitlesPagenator(dt,
-                        new System.Windows.Size(printDialog.PrintableAreaWidth, printDialog.PrintableAreaHeight));
+                    var printQueue = printDialog.PrintQueue;
+                    Console.WriteLine($"printQueue.Name:{printQueue.Name}");
+                    var printCapabilities = printQueue.GetPrintCapabilities();
+                    Console.WriteLine($"ExtentWidth:{printCapabilities.PageImageableArea.ExtentWidth}");
+                    Console.WriteLine($"ExtentHeight:{printCapabilities.PageImageableArea.ExtentHeight}");
+                    Console.WriteLine($"OriginWidth:{printCapabilities.PageImageableArea.OriginWidth}");
+                    Console.WriteLine($"OriginHeight:{printCapabilities.PageImageableArea.OriginHeight}");
+                    Console.WriteLine($"OrientedPageMediaWidth:{printCapabilities.OrientedPageMediaWidth}");
+                    Console.WriteLine($"OrientedPageMediaHeight{printCapabilities.OrientedPageMediaHeight}");
+
+                    LyricsTitlesPagenator pagenator = new LyricsTitlesPagenator(dt, 
+                        new System.Windows.Size(printDialog.PrintableAreaWidth, printDialog.PrintableAreaHeight),
+                        printCapabilities);
+
                     printDialog.PrintDocument(pagenator, "曲名一覧");
                 }
                 Console.Write("[Enter]を押下するとプログラムを終了します。>");
@@ -73,3 +90,19 @@ namespace LyricsTitleList2
         }
     }
 }
+
+/*
+ * 
+printQueue.Name:Brother DCP-J926N Printer (1 コピー)
+ExtentWidth:771.299527559055
+ExtentHeight:1100.11842519685
+OriginWidth:11.1987401574803
+OriginHeight:11.1987401574803
+OrientedPageMediaWidth:793.700787401575
+OrientedPageMediaHeight1122.51968503937
+_itemFontSize:11.6
+_margin_Y:19.3803937007873
+_column_Width:157.159775028121
+_gridTop:37.6537270341207
+_gridBottom:774.320393700787
+*/

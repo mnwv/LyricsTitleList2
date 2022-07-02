@@ -15,12 +15,12 @@ namespace LyricsTitleList2
 
         public override System.Windows.Size PageSize
         {
-            get => _pageSize;
-            set
-            {
-                _pageSize = value;
-                PagenateData();
-            }
+            get => _paperSize;
+            set => throw new NotImplementedException();
+            //{
+            //    _pageSize = value;
+            //    PagenateData();
+            //}
         }
 
         public override IDocumentPaginatorSource Source => null;
@@ -36,40 +36,48 @@ namespace LyricsTitleList2
                 //DrawOuterRectangle(dc);
                 DrawItems(dc, pageNumber);
             }
-            return new DocumentPage(visual, PageSize, new Rect(_pageSize), new Rect(_pageSize));
+            return new DocumentPage(visual, PageSize, new Rect(_paperSize), new Rect(_paperSize));
         }
 
         private DataTable _dt;
 
         private readonly Typeface _typeface = new Typeface("Meiryo UI");
         private readonly Typeface _numTypeface = new Typeface("Times New Roman");
-        private Size _pageSize;
+
+        private System.Printing.PrintCapabilities _printCapabilities;
+        private Size _paperSize;
         private double _marginY;
+        private double _marginX;
 
         private FormattedText _titleText;
         private double _columnWidth;
         private double _capitalWidth;
         private double _gridTop;
         private double _gridBottom;
+        private double _titleFontSize;
+        private double _dateFontSize;
+        private double _pageNumFontSize;
+        private double _itemFontSize;
 
         private const int ROWS_PER_PAGE = 50;
         private const int COLS_PER_PAGE = 7;
-        private const double MARGIN_X = 10.0;
-        private const double TITLE_FONT_SIZE = 14.0;
-        private const double DATE_FONT_SIZE = 10.0;
-        private const double PAGE_NUM_FONT_SIZE = 10.0;
-        private const double LYRICS_FONT_SIZE = 12.0;
+        //private const double MARGIN_X = 2.0;
+        private const double MAX_FONT_SIZE = 14.0;
+
+        //private const double DATE_FONT_SIZE = 10.0;
+        //private const double PAGE_NUM_FONT_SIZE = 10.0;
+        //private const double LYRICS_FONT_SIZE = 12.0;
         private const double THIN = 0.3;
         private const double THICK = 1.5;
         private const double CAPITAL_MARGIN_L = 2.0;
         private const double CAPITAL_MARGIN_R = 1.0;
         private const double NAME_MARGIN_L = 1.0;
         
-        internal LyricsTitlesPagenator(DataTable dt, Size pageSize)
+        internal LyricsTitlesPagenator(DataTable dt, Size paperSize, System.Printing.PrintCapabilities printCapabilities)
         {
-            Console.WriteLine($"ページ幅:{pageSize.Width} ページ高:{pageSize.Height}");
             _dt = dt;
-            _pageSize = pageSize;
+            _paperSize = paperSize;
+            _printCapabilities = printCapabilities;
             PagenateData();
         }
 
@@ -78,21 +86,43 @@ namespace LyricsTitleList2
         /// </summary>
         private void PagenateData()
         {
-            // 縦のマージンを計算
-            _titleText = GetFormattedText("曲名一覧",_typeface, TITLE_FONT_SIZE);
+            double pageWidth = _printCapabilities.PageImageableArea.ExtentHeight;
+            double pageHeight = _printCapabilities.PageImageableArea.ExtentWidth;
+
+            _marginX = _printCapabilities.PageImageableArea.OriginHeight + 2.0;
+
+            _itemFontSize = MAX_FONT_SIZE;
+            // フォントサイズを計算
+            while (true)
+            {
+                FormattedText text = GetFormattedText("あ");
+                double needsHeight = text.Height * (ROWS_PER_PAGE + 2);
+                if (needsHeight <= pageHeight) break;
+                _itemFontSize -= 0.1;
+            }
+            Console.WriteLine($"_itemFontSize:{_itemFontSize}");
+            _titleFontSize = _itemFontSize + 2.0;
+            _dateFontSize = _itemFontSize - 0.5;
+            _pageNumFontSize = _dateFontSize;
+
             // 頭文字欄の幅を計算
             FormattedText itemText = GetFormattedText("あ");
             _capitalWidth = itemText.Width + CAPITAL_MARGIN_L + CAPITAL_MARGIN_R;
+
             // 頁の上下のマージンを計算
             double gridHeight = itemText.Height * ROWS_PER_PAGE;
-            _marginY = (_pageSize.Height - gridHeight - _titleText.Height - 1.0) / 2;
+            _titleText = GetFormattedText("曲名一覧", _typeface, _titleFontSize);
+            _marginY = (_paperSize.Height - gridHeight - _titleText.Height - 1.0) / 2;
             Console.WriteLine($"_margin_Y:{_marginY}");
+
             // カラム幅(頭文字欄の幅を含む)を計算
-            _columnWidth = (_pageSize.Width - MARGIN_X * 2) / COLS_PER_PAGE;
+            _columnWidth = (_paperSize.Width - _marginX * 2) / COLS_PER_PAGE;
             Console.WriteLine($"_column_Width:{_columnWidth}");
+
             // 表の上端位置を計算
             _gridTop = _marginY + _titleText.Height + 1.0;
             Console.WriteLine($"_gridTop:{_gridTop}");
+
             // 表の下端位置を計算
             _gridBottom = _gridTop + gridHeight;
             Console.WriteLine($"_gridBottom:{_gridBottom}");
@@ -105,22 +135,24 @@ namespace LyricsTitleList2
         /// <param name="pageNum">ページ番号(0オリジン)</param>
         private void DrawTitle(DrawingContext dc, int pageNum)
         {
-            double titleX = (_pageSize.Width - _titleText.Width) / 2;
+            double titleX = (_paperSize.Width - _titleText.Width) / 2;
             dc.DrawText(_titleText, new Point(titleX, _marginY));
-            FormattedText date =
-                GetFormattedText(DateTime.Today.ToString("yyyy/MM/dd"), _numTypeface, DATE_FONT_SIZE);
-            double date_Y = _marginY + (_titleText.Height - date.Height);
-            dc.DrawText(date, new Point(MARGIN_X, date_Y));
-            FormattedText page =
-                GetFormattedText($"Psge: {pageNum}/{PageCount}", _numTypeface, PAGE_NUM_FONT_SIZE);
-            double pagenumY = _marginY + (_titleText.Height - page.Height);
-            double pagenumX = _pageSize.Width - MARGIN_X - page.Width;
-            dc.DrawText(page, new Point(pagenumX, pagenumY));
+
+            FormattedText dateText =
+                GetFormattedText(DateTime.Today.ToString("yyyy/MM/dd"), _numTypeface, _dateFontSize);
+            double date_Y = _marginY + (_titleText.Height - dateText.Height);
+            dc.DrawText(dateText, new Point(_marginX, date_Y));
+
+            FormattedText pageText =
+                GetFormattedText($"Psge: {pageNum}/{PageCount}", _numTypeface, _pageNumFontSize);
+            double pagenumY = _marginY + (_titleText.Height - pageText.Height);
+            double pagenumX = _paperSize.Width - _marginX - pageText.Width;
+            dc.DrawText(pageText, new Point(pagenumX, pagenumY));
         }
 
         private void DrawItems(DrawingContext dc, int pageNumber)
         {
-            Point point = new Point(MARGIN_X, _gridTop);
+            Point point = new Point(_marginX, _gridTop);
 
             int start = ROWS_PER_PAGE * COLS_PER_PAGE * pageNumber;
             for (int i = 0; i < ROWS_PER_PAGE * COLS_PER_PAGE; i++)
@@ -136,7 +168,7 @@ namespace LyricsTitleList2
                 DataRow row = _dt.Rows[rowIdx];
                 if (i % ROWS_PER_PAGE == 0)
                 {   // 先頭行 縦線描画 頭文字描画
-                    point.X = MARGIN_X + _columnWidth * (int)(i / ROWS_PER_PAGE);
+                    point.X = _marginX + _columnWidth * (int)(i / ROWS_PER_PAGE);
                     point.Y = _gridTop;
                     DrawVLines(dc, point.X);
                     DrawCapital(dc, row, point);
@@ -178,7 +210,7 @@ namespace LyricsTitleList2
             Point pt1 = new Point(x, _gridTop);
             Point pt2 = new Point(x, _gridBottom);
             dc.DrawLine(new Pen(Brushes.Black, THICK), pt1, pt2);
-            if (x < _pageSize.Width - MARGIN_X * 2)
+            if (x < _paperSize.Width - _marginX * 2)
             {   // 頭文字右側の縦線
                 pt1.X += _capitalWidth;
                 pt2.X += _capitalWidth;
@@ -209,7 +241,7 @@ namespace LyricsTitleList2
 
         private FormattedText GetFormattedText(string text)
         {
-            return GetFormattedText(text, _typeface, LYRICS_FONT_SIZE);
+            return GetFormattedText(text, _typeface, _itemFontSize);
         }
 
         private FormattedText GetFormattedText(string text, Typeface typeface, double fontSize)
