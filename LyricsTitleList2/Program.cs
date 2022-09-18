@@ -2,6 +2,7 @@
 using System.Windows.Controls;
 using System.Data;
 using System.IO;
+using System.Windows;
 
 namespace LyricsTitleList2
 {
@@ -14,7 +15,15 @@ namespace LyricsTitleList2
         [STAThread] // 印刷処理を行う場合は STAThread 属性が必要です
         static void Main(string[] args)
         {
-            string lyricsRoot = Directory.Exists(LYRICS_ROOT1) ? LYRICS_ROOT1 : LYRICS_ROOT2;
+            var musicFolder = Environment.GetFolderPath(Environment.SpecialFolder.MyMusic);
+            string lyricsRoot = System.IO.Path.Combine(musicFolder, "Lyrics-LaTeX2.github");
+            if (!Directory.Exists(lyricsRoot))
+            {
+                MessageBox.Show($"歌詞ファイルフォルダ{lyricsRoot}が見つかりません。");
+                Application.Current.Shutdown();
+                return;
+            }
+
             // 歌詞曲名を印刷
             DataTable dt = collectLyricsTitles(lyricsRoot);
             PrintDialog printDialog = new PrintDialog();
