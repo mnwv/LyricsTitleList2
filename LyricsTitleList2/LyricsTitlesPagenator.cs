@@ -159,7 +159,7 @@ namespace LyricsTitleList2
             {
                 double thickness = THIN;
                 int rowIdx = start + i;
-                if (rowIdx >= _dt.Rows.Count - 1)
+                if (rowIdx >= _dt.Rows.Count)
                 {   // データの最後
                     DrawHLine(dc, point, THICK);
                     EndOfDataDrawLine(dc, point.X);
