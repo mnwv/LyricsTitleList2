@@ -81,7 +81,8 @@ namespace LyricsTitleList2
                         row[dt.Columns["頭文字"]] = capital;
                         row[dt.Columns["親フォルダ"]] = kana;
                         row[dt.Columns["曲名"]] = Path.GetFileNameWithoutExtension(filePath);
-                        dt.Rows.Add(row);
+                        if (row[dt.Columns["曲名"]].ToString() != "うぐいす") // 「うぐいす」はスキップ
+                            dt.Rows.Add(row);
                     }
                 }
             }
